@@ -10,9 +10,21 @@ class Element {
     this.dataset = {};
     this.disabled = false;
     this.eventHandlers = {};
+    this.attributes = {};
     this.textContent = "";
     this.type = "";
     this.value = "";
+    this.classList = {
+      toggle: (name, active) => {
+        const classes = new Set(this.className.split(" ").filter(Boolean));
+        if (active) {
+          classes.add(name);
+        } else {
+          classes.delete(name);
+        }
+        this.className = Array.from(classes).join(" ");
+      }
+    };
   }
 
   append(...nodes) {
@@ -33,6 +45,10 @@ class Element {
 
   focus() {}
 
+  setAttribute(name, value) {
+    this.attributes[name] = value;
+  }
+
   set innerHTML(value) {
     this.children = [];
     this.textContent = value;
@@ -46,8 +62,15 @@ const ids = {
   searchNotes: new Element("input"),
   noteTitle: new Element("input"),
   noteContent: new Element("textarea"),
-  statusText: new Element("div")
+  statusText: new Element("div"),
+  lightTheme: new Element("button"),
+  darkTheme: new Element("button")
 };
+
+ids.lightTheme.dataset.themeValue = "light";
+ids.darkTheme.dataset.themeValue = "dark";
+ids.lightTheme.className = "theme-option";
+ids.darkTheme.className = "theme-option";
 
 const html = fs.readFileSync("index.html", "utf8");
 const script = html.match(/<script>([\s\S]*)<\/script>/)?.[1];
@@ -55,6 +78,8 @@ assert.ok(script, "index.html should include an app script");
 assert.ok(html.includes("grid-template-columns: minmax(260px, 340px) minmax(0, 1fr)"));
 assert.ok(html.includes('class="notes-list"'));
 assert.ok(html.includes('class="editor"'));
+assert.ok(html.includes('class="theme-switch"'));
+assert.ok(html.includes('[data-theme="dark"]'));
 
 const storage = {};
 const context = {
@@ -68,8 +93,15 @@ const context = {
     })()
   },
   document: {
+    documentElement: new Element("html"),
     createElement: (tagName) => new Element(tagName),
-    getElementById: (id) => ids[id]
+    getElementById: (id) => ids[id],
+    querySelectorAll: (selector) => {
+      if (selector === ".theme-option") {
+        return [ids.lightTheme, ids.darkTheme];
+      }
+      return [];
+    }
   },
   Intl,
   localStorage: {
@@ -90,6 +122,9 @@ let saved = JSON.parse(storage["mvenote.notes"]);
 assert.equal(saved.length, 1, "first load should create one blank note");
 assert.equal(ids.notesList.children.length, 1, "first note should render in the note list");
 assert.equal(ids.statusText.textContent, "All changes saved");
+assert.equal(context.document.documentElement.dataset.theme, "light");
+assert.equal(storage["mvenote.theme"], "light");
+assert.ok(ids.lightTheme.className.includes("active"));
 
 ids.newNote.trigger("click");
 saved = JSON.parse(storage["mvenote.notes"]);
@@ -107,6 +142,13 @@ ids.searchNotes.value = "launch";
 ids.searchNotes.trigger("input");
 assert.equal(ids.notesList.children.length, 1, "search should filter matching notes");
 assert.equal(ids.notesList.children[0].children[0].textContent, "Meeting Notes");
+
+ids.darkTheme.trigger("click");
+assert.equal(context.document.documentElement.dataset.theme, "dark");
+assert.equal(storage["mvenote.theme"], "dark");
+assert.ok(ids.darkTheme.className.includes("active"));
+assert.equal(ids.darkTheme.attributes["aria-pressed"], "true");
+assert.equal(ids.lightTheme.attributes["aria-pressed"], "false");
 
 ids.deleteNote.trigger("click");
 saved = JSON.parse(storage["mvenote.notes"]);

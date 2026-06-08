@@ -6,16 +6,37 @@
   <title>MveNote</title>
   <style>
     :root {
-      --bg: #f3f8ff;
+      --bg: #fff8f1;
       --panel: #ffffff;
-      --panel-soft: #e8f3ff;
-      --text: #172638;
-      --muted: #64748b;
-      --line: #cfe0f2;
-      --accent: #2f80ed;
-      --accent-dark: #1b63bd;
+      --panel-soft: #fff0df;
+      --panel-active: #ffe5c8;
+      --text: #2e2118;
+      --muted: #7b6a5c;
+      --line: #f1d4b8;
+      --accent: #f47c20;
+      --accent-dark: #c85d0f;
       --danger: #b84242;
-      --shadow: 0 16px 36px rgba(37, 99, 160, 0.14);
+      --danger-bg: #fff7f7;
+      --danger-line: #e1b7b7;
+      --placeholder: #b49b84;
+      --shadow: 0 16px 36px rgba(178, 94, 26, 0.15);
+    }
+
+    [data-theme="dark"] {
+      --bg: #14100d;
+      --panel: #201913;
+      --panel-soft: #2b2119;
+      --panel-active: #3a2818;
+      --text: #f7efe7;
+      --muted: #c1ad9b;
+      --line: #4a3728;
+      --accent: #ff9a3d;
+      --accent-dark: #f47c20;
+      --danger: #ff9a9a;
+      --danger-bg: #341b1b;
+      --danger-line: #714040;
+      --placeholder: #9c8979;
+      --shadow: 0 16px 36px rgba(0, 0, 0, 0.28);
     }
 
     * {
@@ -127,8 +148,8 @@
     }
 
     .note-item.active {
-      border-color: rgba(37, 111, 91, 0.32);
-      background: #dceeff;
+      border-color: var(--accent);
+      background: var(--panel-active);
     }
 
     .note-item-title {
@@ -153,8 +174,40 @@
 
     .note-item-date {
       margin-top: 9px;
-      color: #7a867f;
+      color: var(--muted);
       font-size: 0.74rem;
+    }
+
+    .theme-switch {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      margin-top: auto;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+    }
+
+    .theme-option {
+      min-height: 38px;
+      border: 0;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 680;
+    }
+
+    .theme-option:hover {
+      color: var(--text);
+    }
+
+    .theme-option.active {
+      background: var(--panel);
+      color: var(--accent-dark);
+      box-shadow: 0 4px 12px rgba(113, 72, 34, 0.14);
     }
 
     .empty-list {
@@ -202,9 +255,9 @@
     }
 
     .delete-note {
-      border: 1px solid #e1b7b7;
+      border: 1px solid var(--danger-line);
       border-radius: 8px;
-      background: #fff7f7;
+      background: var(--danger-bg);
       color: var(--danger);
       cursor: pointer;
       padding: 8px 12px;
@@ -218,6 +271,7 @@
       width: 100%;
       border: 0;
       border-bottom: 1px solid var(--line);
+      background: var(--panel);
       color: var(--text);
       font-size: clamp(1.6rem, 4vw, 2.8rem);
       font-weight: 780;
@@ -232,6 +286,7 @@
       min-height: 0;
       resize: none;
       border: 0;
+      background: var(--panel);
       color: var(--text);
       font-size: 1.05rem;
       line-height: 1.7;
@@ -241,7 +296,7 @@
 
     .title-input::placeholder,
     .content-input::placeholder {
-      color: #a4ada8;
+      color: var(--placeholder);
     }
 
     @media (max-width: 760px) {
@@ -280,6 +335,10 @@
         width: 100%;
       }
 
+      .theme-switch {
+        margin-top: 0;
+      }
+
       .title-input {
         padding: 20px 18px 14px;
       }
@@ -299,6 +358,10 @@
       </div>
       <input class="search" id="searchNotes" type="search" placeholder="Search notes" aria-label="Search notes">
       <section class="notes-list" id="notesList" aria-label="Notes list"></section>
+      <div class="theme-switch" aria-label="Theme switch">
+        <button class="theme-option" id="lightTheme" type="button" data-theme-value="light">Light</button>
+        <button class="theme-option" id="darkTheme" type="button" data-theme-value="dark">Dark</button>
+      </div>
     </aside>
 
     <section class="editor" aria-label="Note editor">
@@ -315,6 +378,7 @@
 
   <script>
     const STORAGE_KEY = "mvenote.notes";
+    const THEME_KEY = "mvenote.theme";
 
     const els = {
       list: document.getElementById("notesList"),
@@ -323,12 +387,27 @@
       search: document.getElementById("searchNotes"),
       title: document.getElementById("noteTitle"),
       content: document.getElementById("noteContent"),
-      status: document.getElementById("statusText")
+      status: document.getElementById("statusText"),
+      themeButtons: document.querySelectorAll(".theme-option")
     };
 
     let notes = loadNotes();
     let activeId = notes[0]?.id || createNote(false).id;
     let saveTimer;
+
+    function loadTheme() {
+      return localStorage.getItem(THEME_KEY) === "dark" ? "dark" : "light";
+    }
+
+    function applyTheme(theme) {
+      document.documentElement.dataset.theme = theme;
+      localStorage.setItem(THEME_KEY, theme);
+      els.themeButtons.forEach((button) => {
+        const active = button.dataset.themeValue === theme;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", String(active));
+      });
+    }
 
     function loadNotes() {
       try {
@@ -496,6 +575,13 @@
       updateActiveNote({ content: els.content.value });
     });
 
+    els.themeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        applyTheme(button.dataset.themeValue);
+      });
+    });
+
+    applyTheme(loadTheme());
     render();
   </script>
 </body>
