@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MveNote</title>
+  <style>
+    :root {
+      --bg: #f6f7f4;
+      --panel: #ffffff;
+      --panel-soft: #eef2ed;
+      --text: #1d2420;
+      --muted: #66736c;
+      --line: #dce3de;
+      --accent: #256f5b;
+      --accent-dark: #155141;
+      --danger: #b84242;
+      --shadow: 0 16px 36px rgba(28, 42, 34, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 0;
+      padding: 22px;
+      border-right: 1px solid var(--line);
+      background: var(--panel);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 780;
+      letter-spacing: 0;
+    }
+
+    .new-note {
+      width: 42px;
+      height: 42px;
+      border: 0;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      font-size: 1.45rem;
+      line-height: 1;
+      display: grid;
+      place-items: center;
+    }
+
+    .new-note:hover {
+      background: var(--accent-dark);
+    }
+
+    .search {
+      width: 100%;
+      height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-soft);
+      color: var(--text);
+      padding: 0 12px;
+      outline: none;
+    }
+
+    .search:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 111, 91, 0.14);
+    }
+
+    .notes-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+      overflow: auto;
+      padding-right: 3px;
+    }
+
+    .note-item {
+      width: 100%;
+      min-height: 82px;
+      padding: 12px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .note-item:hover {
+      background: var(--panel-soft);
+    }
+
+    .note-item.active {
+      border-color: rgba(37, 111, 91, 0.32);
+      background: #e7f1ed;
+    }
+
+    .note-item-title {
+      overflow: hidden;
+      color: var(--text);
+      font-size: 0.98rem;
+      font-weight: 720;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .note-item-preview {
+      display: -webkit-box;
+      overflow: hidden;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.35;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+    }
+
+    .note-item-date {
+      margin-top: 9px;
+      color: #7a867f;
+      font-size: 0.74rem;
+    }
+
+    .empty-list {
+      padding: 18px 10px;
+      color: var(--muted);
+      font-size: 0.94rem;
+      line-height: 1.45;
+    }
+
+    .editor {
+      display: flex;
+      min-width: 0;
+      min-height: 0;
+      padding: 28px;
+    }
+
+    .editor-inner {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .editor-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .status {
+      overflow: hidden;
+      color: var(--muted);
+      font-size: 0.86rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .delete-note {
+      border: 1px solid #e1b7b7;
+      border-radius: 8px;
+      background: #fff7f7;
+      color: var(--danger);
+      cursor: pointer;
+      padding: 8px 12px;
+    }
+
+    .delete-note:hover {
+      border-color: var(--danger);
+    }
+
+    .title-input {
+      width: 100%;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      color: var(--text);
+      font-size: clamp(1.6rem, 4vw, 2.8rem);
+      font-weight: 780;
+      letter-spacing: 0;
+      outline: none;
+      padding: 26px 28px 18px;
+    }
+
+    .content-input {
+      width: 100%;
+      flex: 1;
+      min-height: 0;
+      resize: none;
+      border: 0;
+      color: var(--text);
+      font-size: 1.05rem;
+      line-height: 1.7;
+      outline: none;
+      padding: 24px 28px 30px;
+    }
+
+    .title-input::placeholder,
+    .content-input::placeholder {
+      color: #a4ada8;
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-rows: 240px minmax(0, 1fr);
+      }
+
+      .sidebar {
+        padding: 16px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .notes-list {
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: 4px;
+      }
+
+      .note-item {
+        min-width: 220px;
+      }
+
+      .editor {
+        padding: 14px;
+      }
+
+      .editor-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .delete-note {
+        width: 100%;
+      }
+
+      .title-input {
+        padding: 20px 18px 14px;
+      }
+
+      .content-input {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <aside class="sidebar" aria-label="Notes">
+      <div class="brand">
+        <h1>MveNote</h1>
+        <button class="new-note" id="newNote" type="button" title="New note" aria-label="New note">+</button>
+      </div>
+      <input class="search" id="searchNotes" type="search" placeholder="Search notes" aria-label="Search notes">
+      <section class="notes-list" id="notesList" aria-label="Notes list"></section>
+    </aside>
+
+    <section class="editor" aria-label="Note editor">
+      <div class="editor-inner">
+        <div class="editor-toolbar">
+          <div class="status" id="statusText">All changes saved</div>
+          <button class="delete-note" id="deleteNote" type="button">Delete note</button>
+        </div>
+        <input class="title-input" id="noteTitle" type="text" placeholder="Untitled note" aria-label="Note title">
+        <textarea class="content-input" id="noteContent" placeholder="Write your note here..." aria-label="Note content"></textarea>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "mvenote.notes";
+
+    const els = {
+      list: document.getElementById("notesList"),
+      newNote: document.getElementById("newNote"),
+      deleteNote: document.getElementById("deleteNote"),
+      search: document.getElementById("searchNotes"),
+      title: document.getElementById("noteTitle"),
+      content: document.getElementById("noteContent"),
+      status: document.getElementById("statusText")
+    };
+
+    let notes = loadNotes();
+    let activeId = notes[0]?.id || createNote(false).id;
+    let saveTimer;
+
+    function loadNotes() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        return Array.isArray(saved) && saved.length ? saved : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveNotes() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+      els.status.textContent = "All changes saved";
+    }
+
+    function queueSave() {
+      els.status.textContent = "Saving...";
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveNotes, 250);
+    }
+
+    function createNote(activate = true) {
+      const now = new Date().toISOString();
+      const note = {
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        title: "",
+        content: "",
+        createdAt: now,
+        updatedAt: now
+      };
+
+      notes.unshift(note);
+      if (activate) {
+        activeId = note.id;
+      }
+      saveNotes();
+      return note;
+    }
+
+    function activeNote() {
+      return notes.find((note) => note.id === activeId);
+    }
+
+    function formatDate(value) {
+      return new Intl.DateTimeFormat(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      }).format(new Date(value));
+    }
+
+    function noteTitle(note) {
+      return note.title.trim() || "Untitled note";
+    }
+
+    function notePreview(note) {
+      return note.content.trim() || "No content yet";
+    }
+
+    function renderList() {
+      const query = els.search.value.trim().toLowerCase();
+      const visibleNotes = notes.filter((note) => {
+        return `${note.title} ${note.content}`.toLowerCase().includes(query);
+      });
+
+      els.list.innerHTML = "";
+
+      if (!visibleNotes.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty-list";
+        empty.textContent = query ? "No notes match your search." : "Create your first note.";
+        els.list.appendChild(empty);
+        return;
+      }
+
+      visibleNotes.forEach((note) => {
+        const button = document.createElement("button");
+        button.className = `note-item${note.id === activeId ? " active" : ""}`;
+        button.type = "button";
+        button.dataset.id = note.id;
+
+        const title = document.createElement("div");
+        title.className = "note-item-title";
+        title.textContent = noteTitle(note);
+
+        const preview = document.createElement("div");
+        preview.className = "note-item-preview";
+        preview.textContent = notePreview(note);
+
+        const date = document.createElement("div");
+        date.className = "note-item-date";
+        date.textContent = `Edited ${formatDate(note.updatedAt)}`;
+
+        button.append(title, preview, date);
+        els.list.appendChild(button);
+      });
+    }
+
+    function renderEditor() {
+      const note = activeNote();
+      const disabled = !note;
+
+      els.title.disabled = disabled;
+      els.content.disabled = disabled;
+      els.deleteNote.disabled = disabled;
+      els.title.value = note?.title || "";
+      els.content.value = note?.content || "";
+      els.status.textContent = note ? "All changes saved" : "No note selected";
+    }
+
+    function render() {
+      renderList();
+      renderEditor();
+    }
+
+    function updateActiveNote(changes) {
+      const note = activeNote();
+      if (!note) {
+        return;
+      }
+
+      Object.assign(note, changes, { updatedAt: new Date().toISOString() });
+      notes = [note, ...notes.filter((item) => item.id !== note.id)];
+      queueSave();
+      renderList();
+    }
+
+    els.newNote.addEventListener("click", () => {
+      createNote();
+      render();
+      els.title.focus();
+    });
+
+    els.deleteNote.addEventListener("click", () => {
+      const note = activeNote();
+      if (!note || !confirm(`Delete "${noteTitle(note)}"?`)) {
+        return;
+      }
+
+      notes = notes.filter((item) => item.id !== note.id);
+      activeId = notes[0]?.id || createNote(false).id;
+      saveNotes();
+      render();
+    });
+
+    els.list.addEventListener("click", (event) => {
+      const item = event.target.closest(".note-item");
+      if (!item) {
+        return;
+      }
+
+      activeId = item.dataset.id;
+      render();
+      els.content.focus();
+    });
+
+    els.search.addEventListener("input", renderList);
+
+    els.title.addEventListener("input", () => {
+      updateActiveNote({ title: els.title.value });
+    });
+
+    els.content.addEventListener("input", () => {
+      updateActiveNote({ content: els.content.value });
+    });
+
+    render();
+  </script>
+</body>
+</html>
